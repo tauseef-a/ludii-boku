@@ -1,0 +1,57 @@
+(game "Boku" 
+    (players 2) 
+    (equipment { 
+        (board (rotate 90 (hex {5 6 6 5 6 6})))
+        (piece "Disc" P1) 
+        (piece "Disc" P2) 		
+        
+    }) 
+    (rules 
+        (play
+		    (or
+		            (move Add (to (difference (sites Empty) (last To) ) ))
+			        (move Remove (sites 
+					                   (results from:(sites Occupied by:Mover) 
+									            to:( forEach of:(intersection
+												                    (sites Distance from:(from) (exact 3) ) 
+																    (sites Occupied by:Mover) 
+																)
+												                (sites Between Orthogonal from:(from) to:(site) 
+																       cond:( 
+																			  = 2 (count Sites in:(intersection (sites Between Orthogonal from:(from) to:(site)) (sites Occupied by:Next))) 
+																	        )
+																)
+												   )
+												(to)
+									   )
+								 )
+					)
+			)
+	    )
+        (end (if (is Line 5 Mover exact:True) ( result Mover Win) ) )
+    )
+)
+
+//------------------------------------------------------------------------------
+
+(metadata 
+    
+    (info
+        {
+        (description "Boku is a game of alignment popular among children.  played with marbles on a perforated hexagonal board with 80 spaces.")
+        (aliases {"Bollox" "Bolix"})
+        (rules "Play occurs on a hexagon grid. The game is won by putting five marbles into a row, If a player traps two of his opponent's marbles between two of his own, he may remove one of the sandwiched marbles and the opponent may not put a marble back into the same place with his next move")
+        (source "Murray 1951: 40.")
+        (id "200")
+        (version "0.0.1")
+        (classification "board/space/line")
+        (credit "Eric Piette")
+        (origin "This game was played in Unknown, from around 1850 to 1883.")
+        }
+    )
+    
+    (ai 
+        "Tic-Tac-Toe_ai"
+    )
+    
+)
