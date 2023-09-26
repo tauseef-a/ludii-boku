@@ -1,43 +1,32 @@
 (game "Boku" 
     (players 2) 
     (equipment { 
-        //(board (rotate 90 (hex {5 6 6 5 6 6})))
-		(board (rotate 90 (hex {3 4 4 3 4 4})))
-        (piece "Disc" P1) 
-        (piece "Disc" P2) 		
+        (board (rotate 90 (hex {5 6 6 5 6 6})))
+        (piece "Disc" P1)
+        (piece "Disc" P2)
         
     }) 
     (rules 
         (play
-		        (or
-		            (move Add (to (difference (sites Empty) (last To) ) )
-                       (then
-                        (forEach Site (sites Occupied by:Next) 					   
-					            (custodial (from (site)) Orthogonal 
-					                            (between
-						        			        (exact 2)
-						        			    	if:(is Mover (who at:(between)))
-						        			    	(apply (set Pending (between)))
-                                                )
-					                        (to if:(is Next (who at:(to))))
-											//(then (if (no Moves Next) (moveAgain)))
-					            )
-						)
-					  )
-					)
-					(move Remove (sites Pending)
-					    (then (if (no Moves Mover) (moveAgain)))
-					)
-					
-				)
-	    )
+            (or
+                (move Add (to (difference (sites Empty) (last To) ) ))
+                (move Remove (sites Between
+                                (forEach Site (sites Occupied by:Mover)
+                                    (custodial ( from (site) ) Orthogonal
+                                                   ( between (exact 2) if:(is Next (who at:(between))) )
+                                               ( to if:(is Mover (who at:(to)) ) )
+                                    )
+                                )
+                             )
+                )
+            )
+        )
         (end {
-		     (if (is Line 5 Mover exact:True) ( result Mover Win) )
-			 (if (and (no Moves Mover) (no Moves Next)) (result All Draw))
-			 //(if (is Full) (result All Draw))
-			 //(if (is Cycle) (result All Draw))
-			 }
-   		)
+                (if (is Line 5 Mover exact:True) ( result Mover Win) )
+                (if (and (no Moves Mover) (no Moves Next)) (result All Draw))
+                (if (is Cycle) (result All Draw))
+             }
+        )
     )
 )
 
