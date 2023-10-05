@@ -8,17 +8,18 @@
     }) 
     (rules 
         (play
-            (or
-                (move Add (to (difference (sites Empty) (last To) ) ))
-                (move Remove (sites Between
-                                (forEach Site (sites Occupied by:Mover)
-                                    (custodial ( from (site) ) Orthogonal
-                                                   ( between (exact 2) if:(is Next (who at:(between))) )
-                                               ( to if:(is Mover (who at:(to)) ) )
-                                    )
-                                )
-                             )
+            (if (is Pending)
+                (move Remove (sites Pending))
+                (move Add (to (difference (sites Empty) (last To) ) ) (then 
+                          (
+                            (custodial ( from (last To) ) Orthogonal
+                                               ( between (exact 2) if:(is Next (who at:(between))) (apply (set Pending (between))))
+                                           ( to if:(is Mover (who at:(to)) ) )
+                                (then (moveAgain))
+                            )
+                          ))
                 )
+                
             )
         )
         (end {
