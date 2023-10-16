@@ -10,5 +10,5 @@ public interface Search {
 
     public void reset();
 
-    public Move searchBestMove(final MoveManager moveEngine, final Context context, final double maxSeconds, final int maxIterations, final int maxDepth);
+    public Move searchBestMove(final MoveManager moveManager, final Context context, final double maxSeconds, final int maxIterations, final int maxDepth);
 }

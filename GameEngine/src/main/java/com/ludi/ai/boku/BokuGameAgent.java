@@ -11,7 +11,7 @@ import other.move.Move;
 import com.ludi.ai.boku.search.Search;
 import com.ludi.ai.boku.search.AlphaBeta;
 
-public class BokuGameEngine extends AI implements MoveManager {
+public class BokuGameAgent extends AI implements MoveManager {
 
     // -------------------------------------------------------------------------
 
@@ -25,8 +25,8 @@ public class BokuGameEngine extends AI implements MoveManager {
     /**
      * Constructor
      */
-    public BokuGameEngine() {
-        this.friendlyName = "Boku Engine";
+    public BokuGameAgent() {
+        this.friendlyName = "Boku Game Agent";
     }
 
     @Override

@@ -38,16 +38,16 @@ public class Minimax implements Search {
     }
 
     @Override
-    public Move searchBestMove(MoveManager moveEngine, final Context context, final double maxSeconds, final int maxIterations, final int maxDepth) {
-        return iterativeDeepening(moveEngine, context);
+    public Move searchBestMove(MoveManager moveManager, final Context context, final double maxSeconds, final int maxIterations, final int maxDepth) {
+        return iterativeDeepening(moveManager, context);
     }
 
     private float minimaxSearch(
-            final MoveManager moveEngine,
+            final MoveManager moveManager,
             final Context context,
             int depth,
             boolean isMaximizing) {
-        FastArrayList<Move> legalmoves = moveEngine.getCurrentMoves(context);
+        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
         if (depth == 0 || legalmoves.size() == 0) {
             return this.heuristicValueFunction.computeValue(context, this.player, ABS_HEURISTIC_WEIGHT_THRESHOLD);
         }
@@ -55,9 +55,9 @@ public class Minimax implements Search {
             float maxvalue = 0.00f;
             for (int i = 0; i < legalmoves.size(); ++i) {
                 final Move m = legalmoves.get(i);
-                final Context copycontext = moveEngine.setMoveAsCurrent(context, m);
+                final Context copycontext = moveManager.setMoveAsCurrent(context, m);
 
-                float score = minimaxSearch(moveEngine, copycontext, depth - 1, false);
+                float score = minimaxSearch(moveManager, copycontext, depth - 1, false);
                 if (score > maxvalue) {
                     maxvalue = score;
                 }
@@ -68,8 +68,8 @@ public class Minimax implements Search {
             float minvalue = 1000.00f;
             for (int i = 0; i < legalmoves.size(); ++i) {
                 final Move m = legalmoves.get(i);
-                final Context copycontext = moveEngine.setMoveAsCurrent(context, m);
-                float score = minimaxSearch(moveEngine, copycontext, depth - 1, true);
+                final Context copycontext = moveManager.setMoveAsCurrent(context, m);
+                float score = minimaxSearch(moveManager, copycontext, depth - 1, true);
                 if (score < minvalue) {
                     minvalue = score;
                 }
@@ -79,9 +79,9 @@ public class Minimax implements Search {
     }
 
     private Move iterativeDeepening(
-            final MoveManager moveEngine,
+            final MoveManager moveManager,
             final Context context) {
-        FastArrayList<Move> legalmoves = moveEngine.getCurrentMoves(context);
+        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
         Move bestmove = legalmoves.get(0);
         int initialdepth = 1;
         int finaldepth = 4;
@@ -90,9 +90,9 @@ public class Minimax implements Search {
             for (int i = 0; i < legalmoves.size(); ++i) {
                 float maxvalue = 0.00f;
                 final Move m = legalmoves.get(i);
-                final Context copycontext = moveEngine.setMoveAsCurrent(context, m);
+                final Context copycontext = moveManager.setMoveAsCurrent(context, m);
 
-                float score = minimaxSearch(moveEngine, copycontext, initialdepth, true);
+                float score = minimaxSearch(moveManager, copycontext, initialdepth, true);
                 if (score > maxvalue) {
                     maxvalue = score;
                     bestmove = legalmoves.get(i);
@@ -105,9 +105,9 @@ public class Minimax implements Search {
     }
 
     private Move getBestMove(
-            final MoveManager moveEngine,
+            final MoveManager moveManager,
             final Context context) {
-        return iterativeDeepening(moveEngine, context);
+        return iterativeDeepening(moveManager, context);
     }
 
 }
