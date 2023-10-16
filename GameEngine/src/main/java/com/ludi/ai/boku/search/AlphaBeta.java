@@ -1,11 +1,13 @@
 package com.ludi.ai.boku.search;
 
 import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 
 import com.ludi.ai.boku.HeuristicsManager;
 import com.ludi.ai.boku.MoveManager;
 
-import game.Game;
 import main.collections.FastArrayList;
 
 import other.context.Context;
@@ -18,9 +20,13 @@ public class AlphaBeta implements Search {
     /** Our player index */
     protected int player = -1;
     protected HeuristicsManager heuristicsManager = null;
+    private static final boolean BENCHMARK = true;
 
-    BufferedWriter fileout = null;
-    Game currentGame = null;
+    private static final int SEARCH = 0;
+    private static final int HEURISTICS = 1;
+    private static ArrayList<Long> benchmarkdata = new ArrayList<Long>(2);
+
+    private BufferedWriter benchmarkFile = null;
 
     // -------------------------------------------------------------------------
 
@@ -30,7 +36,40 @@ public class AlphaBeta implements Search {
     public AlphaBeta(HeuristicsManager heuristicsManager) {
 
         this.heuristicsManager = heuristicsManager;
+        if (BENCHMARK) {
+            initializeBenchmark();
+        }
 
+    }
+
+    private void initializeBenchmark()
+    {
+        try {
+            for(int i=0;i<2;i++) benchmarkdata.add(0L);
+            FileWriter fstream = new FileWriter("C:\\Tauseef_A\\Workspace_Coding\\ISG\\out.txt", true);
+            benchmarkFile = new BufferedWriter(fstream);
+            benchmarkFile.write("Start\n");
+        } catch (IOException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void publishBenchmark()
+    {
+        try {
+            benchmarkFile.write(this.toString());
+        } catch (IOException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void saveCurrentBenchmark()
+    {
+        try {
+            benchmarkFile.flush();
+        } catch (IOException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
     }
 
     public void initialize(final int playerID) {
@@ -51,8 +90,17 @@ public class AlphaBeta implements Search {
             boolean isMaximizing) {
         FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
         if (depth == 0 || legalmoves.size() == 0) {
-            float hrsvalue = this.heuristicsManager.evaluateMove(context, this.player);
-            return hrsvalue;
+            if (BENCHMARK) {
+                long heuristicTime = System.currentTimeMillis();
+                float hrsvalue = this.heuristicsManager.evaluateMove(context, this.player);
+                heuristicTime = System.currentTimeMillis() - heuristicTime;
+                benchmarkdata.set(HEURISTICS, benchmarkdata.get(HEURISTICS) + heuristicTime);
+                return hrsvalue;
+
+            } else {
+                float hrsvalue = this.heuristicsManager.evaluateMove(context, this.player);
+                return hrsvalue;
+            }
         }
 
         if (isMaximizing) {
@@ -96,6 +144,7 @@ public class AlphaBeta implements Search {
         float alpha = -10000.00f;
         // float beta = 10000.00f;
         while (initialdepth < finaldepth) {
+            long searchTime = System.currentTimeMillis();
             for (int i = 0; i < legalmoves.size(); ++i) {
                 final Move m = legalmoves.get(i);
                 // float alpha = -10000.00f;
@@ -110,10 +159,13 @@ public class AlphaBeta implements Search {
                     return bestmove;
                 }
             }
+            searchTime = System.currentTimeMillis() - searchTime;
+            benchmarkdata.set(SEARCH, benchmarkdata.get(SEARCH) + searchTime);
+            publishBenchmark();
 
             initialdepth++;
         }
-
+        saveCurrentBenchmark();
         return bestmove;
 
     }
@@ -124,5 +176,18 @@ public class AlphaBeta implements Search {
     {
         return iterativeDeepening(moveManager, context);
 
+    }
+
+    @Override
+    public String toString()
+    {
+        final StringBuilder objectString = new StringBuilder();
+        objectString.append("(Alphabeta ");
+        objectString.append("Search: " + benchmarkdata.get(SEARCH).toString());
+        objectString.append("Heuristics: " + benchmarkdata.get(HEURISTICS).toString());
+        objectString.append(") ");
+        objectString.append(System.lineSeparator());
+
+        return objectString.toString();
     }
 }
