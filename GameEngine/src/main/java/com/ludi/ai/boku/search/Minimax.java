@@ -2,7 +2,7 @@ package com.ludi.ai.boku.search;
 
 import java.io.BufferedWriter;
 
-import com.ludi.ai.boku.MoveEngine;
+import com.ludi.ai.boku.MoveManager;
 
 import main.collections.FastArrayList;
 import other.context.Context;
@@ -38,12 +38,12 @@ public class Minimax implements Search {
     }
 
     @Override
-    public Move searchBestMove(MoveEngine moveEngine, final Context context, final double maxSeconds, final int maxIterations, final int maxDepth) {
+    public Move searchBestMove(MoveManager moveEngine, final Context context, final double maxSeconds, final int maxIterations, final int maxDepth) {
         return iterativeDeepening(moveEngine, context);
     }
 
     private float minimaxSearch(
-            final MoveEngine moveEngine,
+            final MoveManager moveEngine,
             final Context context,
             int depth,
             boolean isMaximizing) {
@@ -79,7 +79,7 @@ public class Minimax implements Search {
     }
 
     private Move iterativeDeepening(
-            final MoveEngine moveEngine,
+            final MoveManager moveEngine,
             final Context context) {
         FastArrayList<Move> legalmoves = moveEngine.getCurrentMoves(context);
         Move bestmove = legalmoves.get(0);
@@ -105,7 +105,7 @@ public class Minimax implements Search {
     }
 
     private Move getBestMove(
-            final MoveEngine moveEngine,
+            final MoveManager moveEngine,
             final Context context) {
         return iterativeDeepening(moveEngine, context);
     }

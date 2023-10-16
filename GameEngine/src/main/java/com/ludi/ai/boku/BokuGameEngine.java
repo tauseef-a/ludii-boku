@@ -11,7 +11,7 @@ import other.move.Move;
 import com.ludi.ai.boku.search.Search;
 import com.ludi.ai.boku.search.AlphaBeta;
 
-public class BokuGameEngine extends AI implements MoveEngine {
+public class BokuGameEngine extends AI implements MoveManager {
 
     // -------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ public class BokuGameEngine extends AI implements MoveEngine {
     @Override
     public void initAI(final Game game, final int playerID) {
         this.player = playerID;
-        this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicEngine());
+        this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicManager());
         this.searchTechnique.initialize(playerID);
     }
 

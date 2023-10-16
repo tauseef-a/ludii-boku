@@ -2,8 +2,8 @@ package com.ludi.ai.boku.search;
 
 import java.io.BufferedWriter;
 
-import com.ludi.ai.boku.HeuristicsEngine;
-import com.ludi.ai.boku.MoveEngine;
+import com.ludi.ai.boku.HeuristicsManager;
+import com.ludi.ai.boku.MoveManager;
 
 import game.Game;
 import main.collections.FastArrayList;
@@ -17,7 +17,7 @@ public class AlphaBeta implements Search {
 
     /** Our player index */
     protected int player = -1;
-    protected HeuristicsEngine heuristicsEngine = null;
+    protected HeuristicsManager heuristicsEngine = null;
 
     BufferedWriter fileout = null;
     Game currentGame = null;
@@ -27,7 +27,7 @@ public class AlphaBeta implements Search {
     /**
      * Constructor
      */
-    public AlphaBeta(HeuristicsEngine heuristicsEngine) {
+    public AlphaBeta(HeuristicsManager heuristicsEngine) {
 
         this.heuristicsEngine = heuristicsEngine;
 
@@ -43,7 +43,7 @@ public class AlphaBeta implements Search {
     }
 
     private float alphabetaSearch(
-            final MoveEngine moveEngine,
+            final MoveManager moveEngine,
             final Context context,
             int depth,
             float alpha,
@@ -88,13 +88,13 @@ public class AlphaBeta implements Search {
     }
 
     private Move iterativeDeepening(
-            final MoveEngine moveEngine,
+            final MoveManager moveEngine,
             final Context context) {
         FastArrayList<Move> legalmoves = moveEngine.getCurrentMoves(context);
         Move bestmove = legalmoves.get(0);
         // final Context copycontext = copyContext(context);
         int initialdepth = 1;
-        int finaldepth = 3;
+        int finaldepth = 2;//TODO: Increase this
         float alpha = -10000.00f;
         // float beta = 10000.00f;
         while (initialdepth < finaldepth) {
@@ -120,7 +120,7 @@ public class AlphaBeta implements Search {
 
     }
 
-    public Move searchBestMove(final MoveEngine moveEngine, final Context context, final double maxSeconds,
+    public Move searchBestMove(final MoveManager moveEngine, final Context context, final double maxSeconds,
             final int maxIterations, final int maxDepth)
 
     {

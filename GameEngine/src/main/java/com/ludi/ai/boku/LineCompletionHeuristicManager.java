@@ -5,12 +5,12 @@ import metadata.ai.heuristics.terms.HeuristicTerm;
 import metadata.ai.heuristics.terms.LineCompletionHeuristic;
 import other.context.Context;
 
-public class LineCompletionHeuristicEngine implements HeuristicsEngine{
+public class LineCompletionHeuristicManager implements HeuristicsManager{
 
     protected Heuristics heuristicEvaluator = null;
     public static final float ABS_HEURISTIC_WEIGHT_THRESHOLD = 0.001f;
 
-    public LineCompletionHeuristicEngine()
+    public LineCompletionHeuristicManager()
     {
         this. heuristicEvaluator = new Heuristics(new HeuristicTerm[]{
             // new MobilitySimple(null, Float.valueOf(0.2f)),
