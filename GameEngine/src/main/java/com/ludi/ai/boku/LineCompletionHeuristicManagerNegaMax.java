@@ -6,6 +6,7 @@ import java.util.Arrays;
 
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Random;
 
 import game.Game;
 
@@ -16,12 +17,12 @@ import main.collections.ListUtils;
 import other.location.Location;
 import other.state.owned.Owned;
 
-public class LineCompletionHeuristicManager implements IHeuristicsManager {
+public class LineCompletionHeuristicManagerNegaMax implements IHeuristicsManager {
 
     // protected Heuristics heuristicEvaluator = null;
     private static final int TARGETLENGTH = 5;
-    private static final int CAPTURELENGTH = 5;
-    private static final float MAXVALUE = 10000.00f;
+    private static final int CAPTURELENGTH = 2;
+    private static final float MAXVALUE = 1000.00f;
     private static final int MAXOWNEDSITES = 60;
     private static final byte[] boardLineLengths = { 5, 6, 7, 8, 9, 10, 10, 9, 8, 7, 6 };
     private static final byte[] boardLineLowerPos = { 0, 5, 11, 18, 26, 35, 45, 54, 62, 69, 75 };
@@ -30,8 +31,7 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
     private byte[][] ownedSiteList = new byte[2][MAXOWNEDSITES];
     private static final byte[][][] boardRadialList = new byte[80][6][4];
 
-    public LineCompletionHeuristicManager() {
-        // this.TARGETLENGTH = 5;
+    public LineCompletionHeuristicManagerNegaMax() {
         generateBoardRadialList();
 
     }
@@ -63,6 +63,7 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
 
     public float evaluateBoard(final Context context, final int playerID) {
         final boolean[] ignore = new boolean[80];
+        float capturescore = 0.0f;
 
         final TFloatArrayList lineValues = new TFloatArrayList();
 
@@ -82,9 +83,9 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
                 Arrays.fill(potentialLineLengths, 1);
                 Arrays.fill(realPieces, 1);
 
-                for (int indexPath = 1; indexPath < TARGETLENGTH
-                        && radialList[radialDirection][indexPath - 1] != -1; ++indexPath) {
-                    final int site = radialList[radialDirection][indexPath - 1];
+                for (int radialNBourSiteIndex = 1; radialNBourSiteIndex < TARGETLENGTH
+                        && radialList[radialDirection][radialNBourSiteIndex - 1] != -1; ++radialNBourSiteIndex) {
+                    final int site = radialList[radialDirection][radialNBourSiteIndex - 1];
                     final int siteowner = siteOwner[site];
 
                     if (ignore[site]) {
@@ -92,27 +93,24 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
                         break;
                     } else if (siteowner != 0 && siteowner != playerID) {
                         // An enemy piece
-                        assert (endPathsBlocked[TARGETLENGTH - indexPath] == false);
-                        endPathsBlocked[TARGETLENGTH - indexPath] = true;
+                        // assert (endPathsBlocked[targetLength - radialNBourSiteIndex] == false);
+                        endPathsBlocked[TARGETLENGTH - radialNBourSiteIndex] = true;
                         break;
                     } else {
-                        for (int j = 0; j < TARGETLENGTH - indexPath; ++j) {
+                        for (int j = 0; j < TARGETLENGTH - radialNBourSiteIndex; ++j) {
                             potentialLineLengths[j] += 1;
 
                             if (siteowner == playerID)
                                 realPieces[j] += 1;
                             if (realPieces[j] == TARGETLENGTH)
                                 return MAXVALUE;
+                            /*
+                             * if (realPieces[j] == CAPTURELENGTH)
+                             * capturescore = MAXVALUE/2.0f;
+                             */
                         }
                     }
                 }
-
-                // At best there can be targetLength lines for this radial + opposite combo;
-                // There's:
-                // - one line starting in piece pos and following direction
-                // - one line with one piece in opposite direction, and rest in direction
-                // - one line with two pieces in opposite direction, and rest in direction
-                // - etc.
 
                 final boolean[] endOppositePathsBlocked = new boolean[TARGETLENGTH];
 
@@ -173,57 +171,107 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
         final int secondArgMax = ListUtils.argMax(lineValues);
         final float secondMaxVal = lineValues.getQuick(secondArgMax);
 
-        return maxVal + secondMaxVal / 2.f;
+        return (maxVal + secondMaxVal / 2.f) + capturescore;
 
     }
 
+    @Override
     public float evaluateMove(final Context currentContext, final int playerID) {
-        int opponent = playerID == 1? 2:1;
+        return 0.0f;
+    }
+
+    @Override
+    public void setContext(final Context currentContext) {
         updateSiteStatus(currentContext);
-        float hrsvalue = this.evaluateBoard(currentContext, playerID);
+    }
 
-        if(hrsvalue >=MAXVALUE)
-          return MAXVALUE;
+    @Override
+    public float evaluateMove(final Context currentContext) {
+        final int mover = currentContext.state().playerToAgent(currentContext.state().mover());
+        final int opponent = mover == 2 ? 1 : 2;
+        float hrsvalue = this.evaluateBoard(currentContext, mover);
 
-        if (hrsvalue >= 0.50f) {
+        if (hrsvalue >= MAXVALUE)
+            hrsvalue = MAXVALUE;
+        else if (hrsvalue >= 0.50f) {
             hrsvalue = optimizeheuristics(hrsvalue, false);
         }
 
-        float oppval = this.evaluateBoard(currentContext, opponent);
-        if(oppval >= MAXVALUE)
-          return -MAXVALUE;
-        if (oppval >= 0.50f) {
-            oppval = optimizeheuristics(oppval, true);
+        if (hrsvalue != MAXVALUE) {
+            float oppval = this.evaluateBoard(currentContext, opponent);
+            if (oppval >= MAXVALUE)
+                hrsvalue = -MAXVALUE;
+            else {
+                if (oppval >= 0.50f) {
+                    oppval = optimizeheuristics(oppval, true);
+                }
+                hrsvalue -= oppval;
+            }
         }
-        hrsvalue -= oppval;
+        return hrsvalue;
+    }
+
+    @Override
+    public byte[][] getBoardPieceStatus() {
+        return ownedSiteList;
+    }
+
+
+    private float optimizeheuristics1(float hrsvalue, boolean opp) {
+        if (hrsvalue >= 1.2f) {
+            hrsvalue = 45.00f;
+            if (opp)
+                hrsvalue -= 5;
+        } else if (hrsvalue >= 1.1f) {
+            hrsvalue = 40.00f;
+        } else if (hrsvalue >= 1.0f) {
+            hrsvalue = 30.00f;
+        } else if (hrsvalue >= 0.90f) {
+            hrsvalue = 25.00f;
+        } else if (hrsvalue >= 0.80f) {
+            hrsvalue = 20.00f;
+        } else if (hrsvalue >= 0.70f) {
+            hrsvalue = 15.00f;
+        } else if (hrsvalue >= 0.60f) {
+            hrsvalue = 10.00f;
+        } else if (hrsvalue >= 0.50f) {
+            hrsvalue = 5.00f;
+        }
+        if (opp)
+            hrsvalue += 2.5;
 
         return hrsvalue;
     }
 
     private float optimizeheuristics(float hrsvalue, boolean opp) {
         if (hrsvalue >= 1.2f) {
-            hrsvalue = 7000.00f;
+            hrsvalue = 950.00f;
             if (opp)
                 hrsvalue -= 5;
         } else if (hrsvalue >= 1.1f) {
-            hrsvalue = 6990.00f;
+            hrsvalue = 900.00f;
         } else if (hrsvalue >= 1.0f) {
-            hrsvalue = 6980.00f;
+            hrsvalue = 800.00f;
         } else if (hrsvalue >= 0.90f) {
-            hrsvalue = 6970.00f;
+            hrsvalue = 700.00f;
         } else if (hrsvalue >= 0.80f) {
-            hrsvalue = 6960.00f;
+            hrsvalue = 600.00f;
         } else if (hrsvalue >= 0.70f) {
-            hrsvalue = 6950.00f;
+            hrsvalue = 500.00f;
         } else if (hrsvalue >= 0.60f) {
-            hrsvalue = 6940.00f;
+            hrsvalue = 400.00f;
         } else if (hrsvalue >= 0.50f) {
-            hrsvalue = 4000.00f;
+            hrsvalue = 300.00f;
         }
         if (opp)
             hrsvalue += 5;
 
         return hrsvalue;
+    }
+
+    private float randomizeValue(float min, float max) {
+        Random random = new Random();
+        return random.nextFloat(min, max);
     }
 
     private void generateBoardRadialList() {
@@ -296,20 +344,5 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
                 break;
         }
 
-    }
-
-    @Override
-    public void setContext(final Context currentContext) {
-        updateSiteStatus(currentContext);
-    }
-
-    @Override
-    public float evaluateMove(final Context currentContext) {
-        return 0.0f;
-    }
-
-    @Override
-    public byte[][] getBoardPieceStatus() {
-        return ownedSiteList;
     }
 }

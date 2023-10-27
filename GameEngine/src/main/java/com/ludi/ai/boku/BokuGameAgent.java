@@ -7,38 +7,41 @@ import other.AI;
 import other.context.Context;
 import other.move.Move;
 
-
-import com.ludi.ai.boku.search.Search;
+import com.ludi.ai.boku.search.ISearch;
 import com.ludi.ai.boku.search.AlphaBeta;
+import com.ludi.ai.boku.search.NegaMax;
 
-public class BokuGameAgent extends AI implements MoveManager {
+import app.utils.TrialUtil;
 
-    // -------------------------------------------------------------------------
+public class BokuGameAgent extends AI implements IMoveManager {
 
-    /** Our player index */
     protected int player = -1;
     Game currentGame = null;
-    Search searchTechnique = null;
+    ISearch searchTechnique = null;
 
-    // -------------------------------------------------------------------------
-
-    /**
-     * Constructor
-     */
     public BokuGameAgent() {
         this.friendlyName = "Boku Game Agent";
     }
 
     @Override
     public final Context setMoveAsCurrent(final Context currentContext, final Move move) {
-        final Context copycontext = copyContext(currentContext);
-        this.currentGame.apply(copycontext, move);
+        Context copycontext = copyContext(currentContext);
+        Move m = this.currentGame.apply(copycontext, move);
+        if (m == null)
+            copycontext = null;
         return copycontext;
     }
 
     @Override
     public FastArrayList<Move> getCurrentMoves(final Context currentContext) {
         return this.currentGame.moves(currentContext).moves();
+    }
+
+    @Override
+    public int getCurrentPly(final Context currentContext)
+    {
+        //This seems to work for now considering Capture and Undo State of Game
+        return currentContext.trial().previousState().size();
     }
 
     @Override
@@ -56,7 +59,11 @@ public class BokuGameAgent extends AI implements MoveManager {
     @Override
     public void initAI(final Game game, final int playerID) {
         this.player = playerID;
-        this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicManager());
+        //this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicManager());
+        this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicManager(), 
+                new ZobristTranspositionTable());
+        /* this.searchTechnique = new NegaMax(new LineCompletionHeuristicManagerNegaMax(),
+                new ZobristTranspositionTable()); */
         this.searchTechnique.initialize(playerID);
     }
 
@@ -69,5 +76,10 @@ public class BokuGameAgent extends AI implements MoveManager {
             return false;
 
         return true;
+    }
+
+    @Override
+    public void closeAI() {
+        this.searchTechnique = null;
     }
 }
