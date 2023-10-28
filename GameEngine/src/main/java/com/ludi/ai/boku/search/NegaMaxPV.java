@@ -58,6 +58,26 @@ public class NegaMaxPV implements ISearch {
     public void reset() {
     }
 
+    /*
+     * To handle capture scenarios, where there are two moves handled by same player.
+     * This API tries to correct the alpha,beta values in such case.
+     */
+    private float negamaxSearchPVABOrder(
+            final Context context,
+            int depth,
+            float alpha,
+            float beta,
+            final int currentPly,
+            final int previousPlayer) {
+
+        int currentPlayer = context.state().playerToAgent(context.state().mover());
+        if(currentPlayer != previousPlayer)
+            return negamaxSearchPV(context, depth, alpha, beta, currentPly);
+        else
+            return negamaxSearchPV(context, depth+1, -beta, -alpha, currentPly);
+
+    }
+
     private float negamaxSearchPV(
             final Context context,
             int depth,
@@ -65,6 +85,12 @@ public class NegaMaxPV implements ISearch {
             float beta,
             final int currentPly) {
 
+        /*
+         * First check the TT, to extract possible details regarding current
+         * move, like alpha,beta, or the exact game heuristic value of the move.
+         * If exact value found, same can be returned, else improve alpha or beta
+         * based on available information
+         */
         this.heuristicsManager.setContext(context);
         float old_alpha = alpha;
         byte[][] ownedPieces = this.heuristicsManager.getBoardPieceStatus();
@@ -82,6 +108,7 @@ public class NegaMaxPV implements ISearch {
                     return tEntry.score;
             }
         }
+        int currentPlayer = context.state().playerToAgent(context.state().mover());
         FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
         if (depth == 0 || legalmoves.size() == 0) {
             /* if (BENCHMARK) {
@@ -104,7 +131,7 @@ public class NegaMaxPV implements ISearch {
         if (tEntry != null && tEntry.depth >= 0 && tEntry.move != null) {
             final Context copycontext = moveManager.setMoveAsCurrent(context, tEntry.move);
             if (copycontext != null && !gameAgent.isSearchTimeElapsed()) {
-                float value = -negamaxSearchPV( copycontext, depth - 1, -beta, -alpha,currentPly+1);
+                float value = -negamaxSearchPVABOrder( copycontext, depth - 1, -beta, -alpha,currentPly+1,currentPlayer);
                 if (value >= beta) {
                     bestScore = value;
                     isTTMoveGood = true;
@@ -114,6 +141,10 @@ public class NegaMaxPV implements ISearch {
             }
         }
 
+        /*
+         * Move from TT was not found to be good, so we need to run typical
+         *  Negamax algorithm now
+         */
         if (!isTTMoveGood) {
             bestScore = ALPHA;
             boolean moveFound = false;
@@ -127,7 +158,7 @@ public class NegaMaxPV implements ISearch {
                 final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                 if (copycontext == null)
                     continue;
-                float value = -negamaxSearchPV( copycontext, depth - 1, -beta, -alpha,currentPly+1);
+                float value = -negamaxSearchPVABOrder( copycontext, depth - 1, -beta, -alpha,currentPly+1,currentPlayer);
                 if(gameAgent.isSearchTimeElapsed()) break;
                 if (value > bestScore) {
                     bestScore = value;

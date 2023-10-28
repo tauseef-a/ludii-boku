@@ -62,10 +62,15 @@ public class AlphaBeta implements ISearch {
             int depth,
             float alpha,
             float beta,
-            boolean isMaximizing,
             final int currentPly) {
         FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
 
+        /*
+         * First check the TT, to extract possible details regarding current
+         * move, like alpha,beta, or the exact game heuristic value of the move.
+         * If exact value found, same can be returned, else improve alpha or beta
+         * based on available information
+         */
         float old_alpha = alpha;
         float old_beta = beta;
         this.heuristicsManager.setContext(context);
@@ -99,6 +104,7 @@ public class AlphaBeta implements ISearch {
             }
         }
 
+        int currentPlayer = context.state().playerToAgent(context.state().mover());
         // Examine TT Move First
         boolean isTTMoveGood = false;
         Move bestMove = null;
@@ -106,9 +112,9 @@ public class AlphaBeta implements ISearch {
         if (tEntry != null && tEntry.depth >= 0 && tEntry.move != null) {
             final Context copycontext = moveManager.setMoveAsCurrent(context, tEntry.move);
             if (copycontext != null && !gameAgent.isSearchTimeElapsed()) {
-                float value = alphabetaSearch( copycontext, depth - 1, alpha, beta, !isMaximizing,currentPly+1);
+                float value = alphabetaSearch( copycontext, depth - 1, alpha, beta,currentPly+1);
                 
-                if(isMaximizing)
+                if(currentPlayer==maximizingPlayer)
                 {
                     if (value >= beta) {
                         bestScore = value;
@@ -132,11 +138,17 @@ public class AlphaBeta implements ISearch {
             }
         }
 
+        /*
+         * Move from TT was not found to be good, so we need to run typical
+         * AlphaBeta algorithm now
+         */
         if(!isTTMoveGood && !gameAgent.isSearchTimeElapsed())
         {
             boolean moveFound = false;
             boolean tMoveInvalid = tEntry != null ? (tEntry.move == null) : true;
-            if (isMaximizing) {
+            //Capture moves require 2 moves by same player.
+            //So it is better to handle in this way, then to pass alternate True/False.
+            if (currentPlayer==maximizingPlayer) { //maximizing case
                 bestScore = ALPHA;
                 for (int i = 0; i < legalmoves.size(); ++i) {
                     final Move m = legalmoves.get(i);
@@ -147,7 +159,7 @@ public class AlphaBeta implements ISearch {
                     final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                     if (copycontext == null)
                         continue;
-                    float score = alphabetaSearch(copycontext, depth - 1, alpha, beta, !isMaximizing/* true */,currentPly+1);
+                    float score = alphabetaSearch(copycontext, depth - 1, alpha, beta,currentPly+1);
                     if(gameAgent.isSearchTimeElapsed()) break;//Search can be incomplete, so we will not update bestscore
                     if(score > bestScore)
                     {
@@ -165,7 +177,7 @@ public class AlphaBeta implements ISearch {
 
                 }
                 //return alpha;
-            } else {
+            } else {//minimizing case
                 bestScore = BETA;
                 for (int i = 0; i < legalmoves.size(); ++i) {
                     final Move m = legalmoves.get(i);
@@ -176,7 +188,7 @@ public class AlphaBeta implements ISearch {
                     final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                     if (copycontext == null)
                         continue;
-                    float score = alphabetaSearch( copycontext, depth - 1, alpha, beta, !isMaximizing/* false */,currentPly+1);
+                    float score = alphabetaSearch( copycontext, depth - 1, alpha, beta, currentPly+1);
                     if(gameAgent.isSearchTimeElapsed()) break; //Search can be incomplete, so we will not update bestscore
                     if(score < bestScore)
                     {
@@ -195,6 +207,10 @@ public class AlphaBeta implements ISearch {
             }
         }
 
+        /*
+         * Update Transposition table with the best move details and search depth
+         * so that it can be used in later searches
+         */
         if(!gameAgent.isSearchTimeElapsed()){
             byte flag;
             if (bestScore <= old_alpha)
@@ -226,7 +242,7 @@ public class AlphaBeta implements ISearch {
             if (copycontext == null)
                 continue;
 
-            float score = alphabetaSearch(copycontext, depth, alpha, beta, false,CurrentPly+1);
+            float score = alphabetaSearch(copycontext, depth, alpha, beta,CurrentPly+1);
             if(gameAgent.isSearchTimeElapsed()) break;
             if (score > alpha) {
                 alpha = score;

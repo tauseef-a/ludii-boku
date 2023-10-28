@@ -74,7 +74,7 @@ public class BokuGameAgent extends AI implements IGameAgent {
             return false;
 
         long currentTime = System.currentTimeMillis();
-        if (currentTime > stopTime)
+        if (currentTime >= stopTime)
             return true;
 
         return false;

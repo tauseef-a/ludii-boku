@@ -26,6 +26,7 @@ public class NegaMax implements ISearch {
     //private static final boolean BENCHMARK = true;
     private static final float ALPHA = -1000.00f;
     private static final float BETA = 1000.00f;
+    private int maximizingPlayer = 0;;
     private ITranspositionTable tTable;
 
     //Benchmark Data
@@ -58,6 +59,26 @@ public class NegaMax implements ISearch {
     public void reset() {
     }
 
+    /*
+     * To handle capture scenarios, where there are two moves handled by same player.
+     * This API tries to correct the alpha,beta values in such case.
+     */
+    private float negamaxSearchABOrder(
+            final Context context,
+            int depth,
+            float alpha,
+            float beta,
+            final int currentPly,
+            final int previousPlayer) {
+
+        int currentPlayer = context.state().playerToAgent(context.state().mover());
+        if(currentPlayer != previousPlayer)
+            return negamaxSearch(context, depth, alpha, beta, currentPly);
+        else
+            return negamaxSearch(context, depth+1, -beta, -alpha, currentPly);
+
+    }
+
     private float negamaxSearch(
             final Context context,
             int depth,
@@ -65,6 +86,12 @@ public class NegaMax implements ISearch {
             float beta,
             final int currentPly) {
 
+        /*
+         * First check the TT, to extract possible details regarding current
+         * move, like alpha,beta, or the exact game heuristic value of the move.
+         * If exact value found, same can be returned, else improve alpha or beta
+         * based on available information
+         */
         this.heuristicsManager.setContext(context);
         float old_alpha = alpha;
         byte[][] ownedPieces = this.heuristicsManager.getBoardPieceStatus();
@@ -82,6 +109,7 @@ public class NegaMax implements ISearch {
                     return tEntry.score;
             }
         }
+        int currentPlayer = context.state().playerToAgent(context.state().mover());
         FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
         if (depth == 0 || legalmoves.size() == 0) {
             /* if (BENCHMARK) {
@@ -104,7 +132,7 @@ public class NegaMax implements ISearch {
         if (tEntry != null && tEntry.depth >= 0 && tEntry.move != null) {
             final Context copycontext = moveManager.setMoveAsCurrent(context, tEntry.move);
             if (copycontext != null && !gameAgent.isSearchTimeElapsed()) {
-                float value = -negamaxSearch( copycontext, depth - 1, -beta, -alpha,currentPly+1);
+                float value = -negamaxSearchABOrder( copycontext, depth - 1, -beta, -alpha,currentPly+1,currentPlayer);
                 if (value >= beta) {
                     bestScore = value;
                     isTTMoveGood = true;
@@ -114,6 +142,10 @@ public class NegaMax implements ISearch {
             }
         }
 
+        /*
+         * Move from TT was not found to be good, so we need to run typical
+         *  Negamax algorithm now
+         */
         if (!isTTMoveGood) {
             bestScore = ALPHA;
             boolean moveFound = false;
@@ -127,7 +159,7 @@ public class NegaMax implements ISearch {
                 final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                 if (copycontext == null)
                     continue;
-                float value = -negamaxSearch( copycontext, depth - 1, -beta, -alpha,currentPly+1);
+                float value = -negamaxSearchABOrder( copycontext, depth - 1, -beta, -alpha,currentPly+1,currentPlayer);
                 if(gameAgent.isSearchTimeElapsed()) break;
                 if (value > bestScore) {
                     bestScore = value;
@@ -169,7 +201,7 @@ public class NegaMax implements ISearch {
 
         FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
         Move bestmove = legalmoves.get(0);
-        //maximisingPlayer = context.state().playerToAgent(context.state().mover());
+        
         float alpha = ALPHA;
         float beta = BETA;
         //long searchTime = System.currentTimeMillis();
@@ -203,6 +235,7 @@ public class NegaMax implements ISearch {
 
         Move bestmove = moveManager.getCurrentMoves(context).get(0);
         int currentPly = moveManager.getCurrentPly(context);
+        //maximizingPlayer = context.state().playerToAgent(context.state().mover());
         Move nextBestmove = bestmove;
         int initialdepth = 0;
         while (initialdepth <= maxDepth) {

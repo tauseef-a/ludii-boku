@@ -16,6 +16,11 @@ public class ZobristTranspositionTable implements ITranspositionTable {
         updateZobristHashEntry();
     }
 
+    /*
+     * Here we use Zobrist Hashing technique.
+     * Hash is uniquely assigned to each players piece on the board.
+     * We consider all pieces on the board currently, and xor their individual hashes.
+     */
     private long getHashFromPieces(byte[][] ownedPieces) {
         long hash = 0;
         for (int playerID = 0; playerID < ownedPieces.length; playerID++) {
@@ -26,6 +31,10 @@ public class ZobristTranspositionTable implements ITranspositionTable {
         return hash;
     }
 
+    /*
+     * Retrieve the entry from TT for the move, given the owned pieces from current board.
+     * If the entry is not found, or the hash is found to mismatch, we return null.
+     */
     @Override
     public TranspositionTableEntry Retrieve(byte[][] ownedPieces) {
         long hash = getHashFromPieces(ownedPieces);
@@ -37,6 +46,10 @@ public class ZobristTranspositionTable implements ITranspositionTable {
         return ttEntry;
     }
 
+    /*
+     * Save the move, score, flag, and depth in the transposition table.
+     * Here we are only saving the "One Deep" replacement scheme.
+     */
     @Override
     public void Save(long hash, Move move, float score, byte flag, byte depth) {
         // long hash = getHashFromPieces(ownedPieces);
@@ -62,6 +75,9 @@ public class ZobristTranspositionTable implements ITranspositionTable {
         Save(hash, move, score, flag, depth);
     }
 
+    /*
+     * Hashes are generated for every player, and every position that can be held by the player.
+     */
     private void updateZobristHashEntry() {
         Random rand = new Random(System.currentTimeMillis());
         for (int playerID = 0; playerID < 2; playerID++) {
