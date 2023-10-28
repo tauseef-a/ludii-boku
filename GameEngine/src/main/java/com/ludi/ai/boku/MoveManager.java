@@ -33,25 +33,43 @@ public class MoveManager  implements IMoveManager{
     public FastArrayList<Move> getCurrentMoves(final Context currentContext,int currentPly) {
         //TODO: [LOW] Once History Heuristics is added switch to priority Queue
 
-        FastArrayList<Move> moves = new FastArrayList<>();
         FastArrayList<Move> fromMoves = ai.game().moves(currentContext).moves();
-        int found = 2;
-        if(killerMoves[currentPly][0] != null) {moves.add(killerMoves[currentPly][0]);found--;};
-        if(killerMoves[currentPly][1] != null) {moves.add(killerMoves[currentPly][1]);found--;};
-        
-        for(int i=0;i<fromMoves.size();i++)
+        boolean kMove1Found = false;
+        boolean kMove2Found = false;
+        int kMove1Index = -1;
+        int kMove2Index = -1;
+
+        if(killerMoves[currentPly][0] != null)
         {
-            Move m = fromMoves.get(i);
-            if(found < 2 && (m.equals(killerMoves[currentPly][0]) || m.equals(killerMoves[currentPly][1])) )
-            {
-                found++;
-                continue;
-
+            FastArrayList<Move> moves = new FastArrayList<>();
+            for (int i = 0; i < fromMoves.size() && (!kMove1Found || !kMove2Found); i++) {
+                Move m = fromMoves.get(i);
+                if (!kMove1Found && (m.equals(killerMoves[currentPly][0]))) {
+                    kMove1Found = true;
+                    kMove1Index = i;
+                }
+                else if (!kMove2Found && (m.equals(killerMoves[currentPly][1]))) {
+                    kMove2Found = true;
+                    kMove2Index = i;
+                }
             }
-            moves.add(m);
-
+            if (!kMove1Found && !kMove2Found)
+                return fromMoves;
+            
+            if(kMove1Found) {moves.add(killerMoves[currentPly][0]);};
+            if(kMove2Found) {moves.add(killerMoves[currentPly][1]);};
+            
+            for(int i=0;i<fromMoves.size();i++)
+            {
+                if(i==kMove1Index || i==kMove2Index ) continue;
+                Move m = fromMoves.get(i);
+                moves.add(m);
+    
+            }
+        
+            return moves;
         }
-        return moves;
+        else return fromMoves;
     }
 
     @Override
