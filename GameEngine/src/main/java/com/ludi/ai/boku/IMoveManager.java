@@ -10,6 +10,10 @@ public interface IMoveManager {
 
     public FastArrayList<Move> getCurrentMoves(final Context currentContext);
 
+    public FastArrayList<Move> getCurrentMoves(final Context currentContext,int currentPly);
+
     public int getCurrentPly(final Context currentContext);
+
+    public void storeKillerMove(Move m,int currentPly);
 
 }

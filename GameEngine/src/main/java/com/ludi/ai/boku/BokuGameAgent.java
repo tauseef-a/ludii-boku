@@ -1,7 +1,6 @@
 package com.ludi.ai.boku;
 
 import game.Game;
-import main.collections.FastArrayList;
 import other.AI;
 
 import other.context.Context;
@@ -11,9 +10,8 @@ import com.ludi.ai.boku.search.ISearch;
 import com.ludi.ai.boku.search.AlphaBeta;
 import com.ludi.ai.boku.search.NegaMax;
 
-import app.utils.TrialUtil;
 
-public class BokuGameAgent extends AI implements IMoveManager {
+public class BokuGameAgent extends AI {
 
     protected int player = -1;
     Game currentGame = null;
@@ -23,25 +21,9 @@ public class BokuGameAgent extends AI implements IMoveManager {
         this.friendlyName = "Boku Game Agent";
     }
 
-    @Override
-    public final Context setMoveAsCurrent(final Context currentContext, final Move move) {
-        Context copycontext = copyContext(currentContext);
-        Move m = this.currentGame.apply(copycontext, move);
-        if (m == null)
-            copycontext = null;
-        return copycontext;
-    }
-
-    @Override
-    public FastArrayList<Move> getCurrentMoves(final Context currentContext) {
-        return this.currentGame.moves(currentContext).moves();
-    }
-
-    @Override
-    public int getCurrentPly(final Context currentContext)
+    public Game game()
     {
-        //This seems to work for now considering Capture and Undo State of Game
-        return currentContext.trial().previousState().size();
+        return currentGame;
     }
 
     @Override
@@ -53,17 +35,17 @@ public class BokuGameAgent extends AI implements IMoveManager {
             final int maxDepth) {
         this.currentGame = game;
         final Context copycontext = copyContext(context);
-        return this.searchTechnique.searchBestMove(this, copycontext, maxSeconds, maxIterations, maxDepth);
+        return this.searchTechnique.searchBestMove( copycontext, maxSeconds, maxIterations, maxDepth);
     }
 
     @Override
     public void initAI(final Game game, final int playerID) {
         this.player = playerID;
         //this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicManager());
-        this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicManager(), 
-                new ZobristTranspositionTable());
-        /* this.searchTechnique = new NegaMax(new LineCompletionHeuristicManagerNegaMax(),
+        /* this.searchTechnique = new AlphaBeta(new MoveManager(this), new LineCompletionHeuristicManager(), 
                 new ZobristTranspositionTable()); */
+        this.searchTechnique = new NegaMax(new MoveManager(this), new LineCompletionHeuristicManagerNegaMax(),
+                new ZobristTranspositionTable());
         this.searchTechnique.initialize(playerID);
     }
 

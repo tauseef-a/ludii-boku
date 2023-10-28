@@ -17,6 +17,7 @@ public class Minimax implements ISearch {
     /** Our player index */
     protected int player = -1;
     protected Heuristics heuristicValueFunction = null;
+    private IMoveManager moveManager = null;
     public static final float ABS_HEURISTIC_WEIGHT_THRESHOLD = 0.001f;
     BufferedWriter fileout = null;
 
@@ -25,8 +26,8 @@ public class Minimax implements ISearch {
     /**
      * Constructor
      */
-    public Minimax() {
-
+    public Minimax(IMoveManager moveManager) {
+        this.moveManager = moveManager;
     }
 
     public void initialize(final int playerID) {
@@ -38,8 +39,8 @@ public class Minimax implements ISearch {
     }
 
     @Override
-    public Move searchBestMove(IMoveManager moveManager, final Context context, final double maxSeconds, final int maxIterations, final int maxDepth) {
-        return iterativeDeepening(moveManager, context);
+    public Move searchBestMove( final Context context, final double maxSeconds, final int maxIterations, final int maxDepth) {
+        return iterativeDeepening( context);
     }
 
     private float minimaxSearch(
@@ -79,7 +80,6 @@ public class Minimax implements ISearch {
     }
 
     private Move iterativeDeepening(
-            final IMoveManager moveManager,
             final Context context) {
         FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
         Move bestmove = legalmoves.get(0);

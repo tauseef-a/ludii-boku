@@ -20,12 +20,12 @@ public class AlphaBeta implements ISearch {
 
     protected int player = -1;
     protected IHeuristicsManager heuristicsManager = null;
+    private IMoveManager moveManager = null;
     private static final float ALPHA = -10000.00f;
     private static final float BETA = 10000.00f;
     private int maximizingPlayer;
     private ITranspositionTable tTable;
-    //We assume a max depth of 100 include capture Moves.
-    private Move[][] killerMoves = new Move[100][2];
+    
 
     /* private static final boolean BENCHMARK = true;
     private static final int SEARCH = 0;
@@ -33,9 +33,10 @@ public class AlphaBeta implements ISearch {
     private static ArrayList<Long> benchmarkdata = new ArrayList<Long>(2);
     private BufferedWriter benchmarkFile = null; */
 
-    public AlphaBeta(IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
+    public AlphaBeta(IMoveManager movemanager, IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
 
         this.heuristicsManager = heuristicsManager;
+        this.moveManager = movemanager;
         this.tTable = ttable;
         /*
          * if (BENCHMARK) {
@@ -55,14 +56,13 @@ public class AlphaBeta implements ISearch {
     }
 
     private float alphabetaSearch(
-            final IMoveManager moveManager,
             final Context context,
             int depth,
             float alpha,
             float beta,
             boolean isMaximizing,
             final int currentPly) {
-        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
+        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
 
         float old_alpha = alpha;
         float old_beta = beta;
@@ -104,13 +104,14 @@ public class AlphaBeta implements ISearch {
         if (tEntry != null && tEntry.depth >= 0 && tEntry.move != null) {
             final Context copycontext = moveManager.setMoveAsCurrent(context, tEntry.move);
             if (copycontext != null) {
-                float value = alphabetaSearch(moveManager, copycontext, depth - 1, alpha, beta, !isMaximizing,currentPly+1);
+                float value = alphabetaSearch( copycontext, depth - 1, alpha, beta, !isMaximizing,currentPly+1);
                 if(isMaximizing)
                 {
                     if (value >= beta) {
                         bestScore = value;
                         isTTMoveGood = true;
                         bestMove = tEntry.move;
+                        moveManager.storeKillerMove(bestMove, currentPly);
                     }
 
                 }
@@ -120,6 +121,7 @@ public class AlphaBeta implements ISearch {
                         bestScore = value;
                         isTTMoveGood = true;
                         bestMove = tEntry.move;
+                        moveManager.storeKillerMove(bestMove, currentPly);
                     }
 
                 }
@@ -142,7 +144,7 @@ public class AlphaBeta implements ISearch {
                     final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                     if (copycontext == null)
                         continue;
-                    float score = alphabetaSearch(moveManager, copycontext, depth - 1, alpha, beta, !isMaximizing/* true */,currentPly+1);
+                    float score = alphabetaSearch(copycontext, depth - 1, alpha, beta, !isMaximizing/* true */,currentPly+1);
                     if(score > bestScore)
                     {
                         bestScore = score;
@@ -152,7 +154,7 @@ public class AlphaBeta implements ISearch {
                         alpha = score;
                     }
                     if (score >= beta) {
-                        storeKillerMove(bestMove, currentPly);
+                        moveManager.storeKillerMove(bestMove, currentPly);
                         break;//return alpha;
                     }
 
@@ -169,7 +171,7 @@ public class AlphaBeta implements ISearch {
                     final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                     if (copycontext == null)
                         continue;
-                    float score = alphabetaSearch(moveManager, copycontext, depth - 1, alpha, beta, !isMaximizing/* false */,currentPly+1);
+                    float score = alphabetaSearch( copycontext, depth - 1, alpha, beta, !isMaximizing/* false */,currentPly+1);
                     if(score < bestScore)
                     {
                         bestScore = score;
@@ -178,7 +180,7 @@ public class AlphaBeta implements ISearch {
                     if (score < beta)
                         beta = score;
                     if (score <= alpha) {
-                        storeKillerMove(bestMove, currentPly);
+                        moveManager.storeKillerMove(bestMove, currentPly);
                         break;//return beta;
                     }
                 }
@@ -203,11 +205,10 @@ public class AlphaBeta implements ISearch {
     }
 
     private Move alphaBetaRootSearch(
-            final IMoveManager moveManager,
             final Context context,
             final int depth,
             final int CurrentPly) {
-        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
+        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,CurrentPly);
         Move bestmove = legalmoves.get(0);
         float alpha = ALPHA;
         float beta = BETA;
@@ -218,14 +219,14 @@ public class AlphaBeta implements ISearch {
             if (copycontext == null)
                 continue;
 
-            float score = alphabetaSearch(moveManager, copycontext, depth, alpha, beta, false,CurrentPly+1);
+            float score = alphabetaSearch(copycontext, depth, alpha, beta, false,CurrentPly+1);
             if (score > alpha) {
                 alpha = score;
                 bestmove = legalmoves.get(i);
             }
             if (alpha >= beta) {
                 //Storing this may be useful only in case of Undo Move???
-                storeKillerMove(bestmove, CurrentPly);
+                moveManager.storeKillerMove(bestmove, CurrentPly);
                 return bestmove;
             }
         }
@@ -236,7 +237,6 @@ public class AlphaBeta implements ISearch {
     }
 
     private Move doIterativeDeepening(
-            final IMoveManager moveManager,
             final Context context) {
         Move bestmove = null;
         int initialdepth = 0;
@@ -245,18 +245,18 @@ public class AlphaBeta implements ISearch {
         int currentPly = moveManager.getCurrentPly(context);
         
         while (initialdepth < finaldepth) {
-            bestmove = alphaBetaRootSearch(moveManager, context, initialdepth,currentPly);
+            bestmove = alphaBetaRootSearch(context, initialdepth,currentPly);
             initialdepth++;
         }
         // saveCurrentBenchmark();
         return bestmove;
     }
 
-    public Move searchBestMove(final IMoveManager moveManager, final Context context, final double maxSeconds,
+    public Move searchBestMove(final Context context, final double maxSeconds,
             final int maxIterations, final int maxDepth)
 
     {
-        return doIterativeDeepening(moveManager, context);
+        return doIterativeDeepening(context);
 
     }
 
@@ -297,16 +297,4 @@ public class AlphaBeta implements ISearch {
         return objectString.toString();
     } */
 
-    private void storeKillerMove(Move m,int currentPly)
-    {
-        if(m != null)
-        {
-            if(!m.equals(killerMoves[currentPly][0]) && !m.equals(killerMoves[currentPly][1]))
-            {
-                killerMoves[currentPly][1] = killerMoves[currentPly][0];
-                killerMoves[currentPly][0] = m;
-
-            }
-        }
-    }
 }

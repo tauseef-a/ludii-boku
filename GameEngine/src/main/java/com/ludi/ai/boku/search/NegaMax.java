@@ -21,6 +21,7 @@ public class NegaMax implements ISearch {
 
     protected int player = -1;
     protected IHeuristicsManager heuristicsManager = null;
+    private IMoveManager moveManager = null;
     private static final boolean BENCHMARK = true;
     private static final float ALPHA = -1000.00f;
     private static final float BETA = 1000.00f;
@@ -38,8 +39,9 @@ public class NegaMax implements ISearch {
     /**
      * Constructor
      */
-    public NegaMax(IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
+    public NegaMax(IMoveManager movemanager, IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
 
+        this.moveManager = movemanager;
         this.heuristicsManager = heuristicsManager;
         this.tTable = ttable;
         /* if (BENCHMARK) {
@@ -57,11 +59,11 @@ public class NegaMax implements ISearch {
     }
 
     private float negamaxSearch(
-            final IMoveManager moveManager,
             final Context context,
             int depth,
             float alpha,
-            float beta) {
+            float beta,
+            final int currentPly) {
 
         this.heuristicsManager.setContext(context);
         float old_alpha = alpha;
@@ -80,7 +82,7 @@ public class NegaMax implements ISearch {
                     return tEntry.score;
             }
         }
-        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
+        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
         if (depth == 0 || legalmoves.size() == 0) {
             /* if (BENCHMARK) {
                 long heuristicTime = System.currentTimeMillis();
@@ -102,11 +104,12 @@ public class NegaMax implements ISearch {
         if (tEntry != null && tEntry.depth >= 0 && tEntry.move != null) {
             final Context copycontext = moveManager.setMoveAsCurrent(context, tEntry.move);
             if (copycontext != null) {
-                float value = -negamaxSearch(moveManager, copycontext, depth - 1, -beta, -alpha);
+                float value = -negamaxSearch( copycontext, depth - 1, -beta, -alpha,currentPly+1);
                 if (value >= beta) {
                     bestScore = value;
                     isTTMoveGood = true;
                     bestMove = tEntry.move;
+                    moveManager.storeKillerMove(bestMove, currentPly);
                 }
             }
         }
@@ -124,7 +127,7 @@ public class NegaMax implements ISearch {
                 final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                 if (copycontext == null)
                     continue;
-                float value = -negamaxSearch(moveManager, copycontext, depth - 1, -beta, -alpha);
+                float value = -negamaxSearch( copycontext, depth - 1, -beta, -alpha,currentPly+1);
                 if (value > bestScore) {
                     bestScore = value;
                     bestMove = m;
@@ -133,6 +136,7 @@ public class NegaMax implements ISearch {
                     alpha = bestScore;
                 }
                 if (bestScore >= beta) {
+                    moveManager.storeKillerMove(bestMove, currentPly);
                     break;// return score; // Fail-Soft Value
                 }
             }
@@ -159,9 +163,10 @@ public class NegaMax implements ISearch {
     private Move negamaxSearchMove(
             final IMoveManager moveManager,
             final Context context,
-            final int depth) {
+            final int depth,
+            final int currentPly) {
 
-        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context);
+        FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
         Move bestmove = legalmoves.get(0);
         maximisingPlayer = context.state().playerToAgent(context.state().mover());
         float alpha = ALPHA;
@@ -171,10 +176,11 @@ public class NegaMax implements ISearch {
             final Move m = legalmoves.get(i);
             final Context copycontext = moveManager.setMoveAsCurrent(context, m);
 
-            float score = -negamaxSearch(moveManager, copycontext, 2, alpha, beta);
+            float score = -negamaxSearch( copycontext, depth, alpha, beta,currentPly+1);
             if (score > alpha) {
                 alpha = score;
                 bestmove = legalmoves.get(i);
+                moveManager.storeKillerMove(bestmove, currentPly);
             }
             if (alpha >= beta) {
                 break;
@@ -190,14 +196,14 @@ public class NegaMax implements ISearch {
     }
 
     private Move doIterativeDeepening(
-            final IMoveManager moveManager,
             final Context context) {
 
         Move bestmove = moveManager.getCurrentMoves(context).get(0);
+        int currentPly = moveManager.getCurrentPly(context);
         int initialdepth = 0;
-        int finaldepth = 5;// TODO: Increase this
+        int finaldepth = 3;// TODO: Increase this
         while (initialdepth <= finaldepth) {
-            bestmove = negamaxSearchMove(moveManager, context, initialdepth);
+            bestmove = negamaxSearchMove(moveManager, context, initialdepth,currentPly);
             initialdepth++;
         }
 
@@ -205,11 +211,11 @@ public class NegaMax implements ISearch {
 
     }
 
-    public Move searchBestMove(final IMoveManager moveManager, final Context context, final double maxSeconds,
+    public Move searchBestMove( final Context context, final double maxSeconds,
             final int maxIterations, final int maxDepth)
 
     {
-        return doIterativeDeepening(moveManager, context);
+        return doIterativeDeepening( context);
     }
 
     /* private void initializeBenchmark() {
