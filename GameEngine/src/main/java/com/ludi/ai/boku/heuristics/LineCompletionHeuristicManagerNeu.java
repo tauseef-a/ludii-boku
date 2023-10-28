@@ -17,8 +17,6 @@ public class LineCompletionHeuristicManagerNeu implements IHeuristicsManager {
 
     public static final float ABS_HEURISTIC_WEIGHT_THRESHOLD = 0.001f;
     private int targetLength;
-    private static final float MAXVALUE = 1000.00f;
-    boolean[] ignoreList = new boolean[80];
     private static final byte[] boardLineLengths = { 5, 6, 7, 8, 9, 10, 10, 9, 8, 7, 6 };
     private static final byte[] boardLineLowerPos = { 0, 5, 11, 18, 26, 35, 45, 54, 62, 69, 75 };
     private static final byte[] boardLineUpperPos = { 4, 10, 17, 25, 34, 44, 53, 61, 68, 74, 79 };

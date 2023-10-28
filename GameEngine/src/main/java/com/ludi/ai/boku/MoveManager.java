@@ -42,7 +42,7 @@ public class MoveManager  implements IMoveManager{
         for(int i=0;i<fromMoves.size();i++)
         {
             Move m = fromMoves.get(i);
-            if(found <= 2 && (m.equals(killerMoves[currentPly][0]) || m.equals(killerMoves[currentPly][1])) )
+            if(found < 2 && (m.equals(killerMoves[currentPly][0]) || m.equals(killerMoves[currentPly][1])) )
             {
                 found++;
                 continue;

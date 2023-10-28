@@ -20,8 +20,8 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
 
     // protected Heuristics heuristicEvaluator = null;
     private static final int TARGETLENGTH = 5;
-    private static final int CAPTURELENGTH = 2;
-    private static final float MAXVALUE = 10000.00f;
+    private static final int CAPTURELENGTH = 3;
+    private static final float MAXVALUE = 1000.00f;
     private static final int MAXOWNEDSITES = 60;
     private static final byte[] boardLineLengths = { 5, 6, 7, 8, 9, 10, 10, 9, 8, 7, 6 };
     private static final byte[] boardLineLowerPos = { 0, 5, 11, 18, 26, 35, 45, 54, 62, 69, 75 };
@@ -212,23 +212,23 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
 
     private float optimizeheuristics(float hrsvalue, boolean opp) {
         if (hrsvalue >= 1.2f) {
-            hrsvalue = 7000.00f;
+            hrsvalue = 80.00f;
             if (opp)
                 hrsvalue -= 5;
         } else if (hrsvalue >= 1.1f) {
-            hrsvalue = 6990.00f;
+            hrsvalue = 60.00f;
         } else if (hrsvalue >= 1.0f) {
-            hrsvalue = 6980.00f;
+            hrsvalue = 55.00f;
         } else if (hrsvalue >= 0.90f) {
-            hrsvalue = 6970.00f;
+            hrsvalue = 50.00f;
         } else if (hrsvalue >= 0.80f) {
-            hrsvalue = 6960.00f;
+            hrsvalue = 45.00f;
         } else if (hrsvalue >= 0.70f) {
-            hrsvalue = 6950.00f;
+            hrsvalue = 21.00f;
         } else if (hrsvalue >= 0.60f) {
-            hrsvalue = 6940.00f;
+            hrsvalue = 20.00f;
         } else if (hrsvalue >= 0.50f) {
-            hrsvalue = 4000.00f;
+            hrsvalue = 5.00f;
         }
         if (opp)
             hrsvalue += 5;

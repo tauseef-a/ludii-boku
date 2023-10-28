@@ -15,11 +15,11 @@ public class Minimax implements ISearch {
     // -------------------------------------------------------------------------
 
     /** Our player index */
-    protected int player = -1;
-    protected Heuristics heuristicValueFunction = null;
+    private int player = -1;
+    private Heuristics heuristicValueFunction = null;
     private IMoveManager moveManager = null;
-    public static final float ABS_HEURISTIC_WEIGHT_THRESHOLD = 0.001f;
-    BufferedWriter fileout = null;
+    private static final float ABS_HEURISTIC_WEIGHT_THRESHOLD = 0.001f;
+    //private BufferedWriter fileout = null;
 
     // -------------------------------------------------------------------------
 

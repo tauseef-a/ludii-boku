@@ -216,33 +216,6 @@ public class LineCompletionHeuristicManagerNegaMax implements IHeuristicsManager
         return ownedSiteList;
     }
 
-
-    private float optimizeheuristics1(float hrsvalue, boolean opp) {
-        if (hrsvalue >= 1.2f) {
-            hrsvalue = 45.00f;
-            if (opp)
-                hrsvalue -= 5;
-        } else if (hrsvalue >= 1.1f) {
-            hrsvalue = 40.00f;
-        } else if (hrsvalue >= 1.0f) {
-            hrsvalue = 30.00f;
-        } else if (hrsvalue >= 0.90f) {
-            hrsvalue = 25.00f;
-        } else if (hrsvalue >= 0.80f) {
-            hrsvalue = 20.00f;
-        } else if (hrsvalue >= 0.70f) {
-            hrsvalue = 15.00f;
-        } else if (hrsvalue >= 0.60f) {
-            hrsvalue = 10.00f;
-        } else if (hrsvalue >= 0.50f) {
-            hrsvalue = 5.00f;
-        }
-        if (opp)
-            hrsvalue += 2.5;
-
-        return hrsvalue;
-    }
-
     private float optimizeheuristics(float hrsvalue, boolean opp) {
         if (hrsvalue >= 1.2f) {
             hrsvalue = 950.00f;

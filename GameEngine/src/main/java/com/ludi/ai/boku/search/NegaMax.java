@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList; */
 
 import com.ludi.ai.boku.heuristics.IHeuristicsManager;
+import com.ludi.ai.boku.IGameAgent;
 import com.ludi.ai.boku.IMoveManager;
 import com.ludi.ai.boku.ITranspositionTable;
 import com.ludi.ai.boku.ITranspositionTable.TranspositionTableEntry;
@@ -19,13 +20,12 @@ public class NegaMax implements ISearch {
 
     // -------------------------------------------------------------------------
 
-    protected int player = -1;
-    protected IHeuristicsManager heuristicsManager = null;
+    private IHeuristicsManager heuristicsManager = null;
     private IMoveManager moveManager = null;
-    private static final boolean BENCHMARK = true;
+    private IGameAgent gameAgent = null;
+    //private static final boolean BENCHMARK = true;
     private static final float ALPHA = -1000.00f;
     private static final float BETA = 1000.00f;
-    private int maximisingPlayer = -1;
     private ITranspositionTable tTable;
 
     //Benchmark Data
@@ -39,8 +39,9 @@ public class NegaMax implements ISearch {
     /**
      * Constructor
      */
-    public NegaMax(IMoveManager movemanager, IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
+    public NegaMax(IGameAgent agent, IMoveManager movemanager, IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
 
+        this.gameAgent = agent;
         this.moveManager = movemanager;
         this.heuristicsManager = heuristicsManager;
         this.tTable = ttable;
@@ -51,7 +52,6 @@ public class NegaMax implements ISearch {
     }
 
     public void initialize(final int playerID) {
-        this.player = playerID;
 
     }
 
@@ -103,7 +103,7 @@ public class NegaMax implements ISearch {
         Move bestMove = null;
         if (tEntry != null && tEntry.depth >= 0 && tEntry.move != null) {
             final Context copycontext = moveManager.setMoveAsCurrent(context, tEntry.move);
-            if (copycontext != null) {
+            if (copycontext != null && !gameAgent.isSearchTimeElapsed()) {
                 float value = -negamaxSearch( copycontext, depth - 1, -beta, -alpha,currentPly+1);
                 if (value >= beta) {
                     bestScore = value;
@@ -128,6 +128,7 @@ public class NegaMax implements ISearch {
                 if (copycontext == null)
                     continue;
                 float value = -negamaxSearch( copycontext, depth - 1, -beta, -alpha,currentPly+1);
+                if(gameAgent.isSearchTimeElapsed()) break;
                 if (value > bestScore) {
                     bestScore = value;
                     bestMove = m;
@@ -142,7 +143,7 @@ public class NegaMax implements ISearch {
             }
         }
 
-        {
+        if(!gameAgent.isSearchTimeElapsed()){
             byte flag;
             if (bestScore <= old_alpha)
                 flag = ITranspositionTable.FLAG_UBOUND;
@@ -168,7 +169,7 @@ public class NegaMax implements ISearch {
 
         FastArrayList<Move> legalmoves = moveManager.getCurrentMoves(context,currentPly);
         Move bestmove = legalmoves.get(0);
-        maximisingPlayer = context.state().playerToAgent(context.state().mover());
+        //maximisingPlayer = context.state().playerToAgent(context.state().mover());
         float alpha = ALPHA;
         float beta = BETA;
         //long searchTime = System.currentTimeMillis();
@@ -177,6 +178,7 @@ public class NegaMax implements ISearch {
             final Context copycontext = moveManager.setMoveAsCurrent(context, m);
 
             float score = -negamaxSearch( copycontext, depth, alpha, beta,currentPly+1);
+            if(gameAgent.isSearchTimeElapsed()) break;
             if (score > alpha) {
                 alpha = score;
                 bestmove = legalmoves.get(i);
@@ -196,14 +198,17 @@ public class NegaMax implements ISearch {
     }
 
     private Move doIterativeDeepening(
-            final Context context) {
+            final Context context,
+            final int maxDepth) {
 
         Move bestmove = moveManager.getCurrentMoves(context).get(0);
         int currentPly = moveManager.getCurrentPly(context);
+        Move nextBestmove = bestmove;
         int initialdepth = 0;
-        int finaldepth = 3;// TODO: Increase this
-        while (initialdepth <= finaldepth) {
-            bestmove = negamaxSearchMove(moveManager, context, initialdepth,currentPly);
+        while (initialdepth <= maxDepth) {
+            nextBestmove = negamaxSearchMove(moveManager, context, initialdepth,currentPly);
+            if(gameAgent.isSearchTimeElapsed()) break;
+            bestmove = nextBestmove;
             initialdepth++;
         }
 
@@ -215,7 +220,7 @@ public class NegaMax implements ISearch {
             final int maxIterations, final int maxDepth)
 
     {
-        return doIterativeDeepening( context);
+        return doIterativeDeepening(context, maxDepth);
     }
 
     /* private void initializeBenchmark() {

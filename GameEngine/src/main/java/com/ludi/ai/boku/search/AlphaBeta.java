@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List; */
 
 import com.ludi.ai.boku.heuristics.IHeuristicsManager;
+import com.ludi.ai.boku.IGameAgent;
 import com.ludi.ai.boku.IMoveManager;
 import com.ludi.ai.boku.ITranspositionTable;
 import com.ludi.ai.boku.ITranspositionTable.TranspositionTableEntry;
@@ -18,11 +19,11 @@ import other.move.Move;
 
 public class AlphaBeta implements ISearch {
 
-    protected int player = -1;
-    protected IHeuristicsManager heuristicsManager = null;
+    private IHeuristicsManager heuristicsManager = null;
     private IMoveManager moveManager = null;
-    private static final float ALPHA = -10000.00f;
-    private static final float BETA = 10000.00f;
+    private IGameAgent gameAgent = null;
+    private static final float ALPHA = -1000.00f;
+    private static final float BETA = 1000.00f;
     private int maximizingPlayer;
     private ITranspositionTable tTable;
     
@@ -33,8 +34,9 @@ public class AlphaBeta implements ISearch {
     private static ArrayList<Long> benchmarkdata = new ArrayList<Long>(2);
     private BufferedWriter benchmarkFile = null; */
 
-    public AlphaBeta(IMoveManager movemanager, IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
+    public AlphaBeta(IGameAgent agent, IMoveManager movemanager, IHeuristicsManager heuristicsManager, ITranspositionTable ttable) {
 
+        this.gameAgent = agent;
         this.heuristicsManager = heuristicsManager;
         this.moveManager = movemanager;
         this.tTable = ttable;
@@ -47,7 +49,7 @@ public class AlphaBeta implements ISearch {
     }
 
     public void initialize(final int playerID) {
-        this.player = playerID;
+        //this.player = playerID;
 
     }
 
@@ -103,8 +105,9 @@ public class AlphaBeta implements ISearch {
         float bestScore = 0;
         if (tEntry != null && tEntry.depth >= 0 && tEntry.move != null) {
             final Context copycontext = moveManager.setMoveAsCurrent(context, tEntry.move);
-            if (copycontext != null) {
+            if (copycontext != null && !gameAgent.isSearchTimeElapsed()) {
                 float value = alphabetaSearch( copycontext, depth - 1, alpha, beta, !isMaximizing,currentPly+1);
+                
                 if(isMaximizing)
                 {
                     if (value >= beta) {
@@ -129,7 +132,7 @@ public class AlphaBeta implements ISearch {
             }
         }
 
-        if(!isTTMoveGood)
+        if(!isTTMoveGood && !gameAgent.isSearchTimeElapsed())
         {
             boolean moveFound = false;
             boolean tMoveInvalid = tEntry != null ? (tEntry.move == null) : true;
@@ -145,6 +148,7 @@ public class AlphaBeta implements ISearch {
                     if (copycontext == null)
                         continue;
                     float score = alphabetaSearch(copycontext, depth - 1, alpha, beta, !isMaximizing/* true */,currentPly+1);
+                    if(gameAgent.isSearchTimeElapsed()) break;//Search can be incomplete, so we will not update bestscore
                     if(score > bestScore)
                     {
                         bestScore = score;
@@ -157,6 +161,7 @@ public class AlphaBeta implements ISearch {
                         moveManager.storeKillerMove(bestMove, currentPly);
                         break;//return alpha;
                     }
+                    
 
                 }
                 //return alpha;
@@ -172,6 +177,7 @@ public class AlphaBeta implements ISearch {
                     if (copycontext == null)
                         continue;
                     float score = alphabetaSearch( copycontext, depth - 1, alpha, beta, !isMaximizing/* false */,currentPly+1);
+                    if(gameAgent.isSearchTimeElapsed()) break; //Search can be incomplete, so we will not update bestscore
                     if(score < bestScore)
                     {
                         bestScore = score;
@@ -183,12 +189,13 @@ public class AlphaBeta implements ISearch {
                         moveManager.storeKillerMove(bestMove, currentPly);
                         break;//return beta;
                     }
+                    
                 }
                 //return beta;
             }
         }
 
-        {
+        if(!gameAgent.isSearchTimeElapsed()){
             byte flag;
             if (bestScore <= old_alpha)
                 flag = ITranspositionTable.FLAG_UBOUND;
@@ -220,6 +227,7 @@ public class AlphaBeta implements ISearch {
                 continue;
 
             float score = alphabetaSearch(copycontext, depth, alpha, beta, false,CurrentPly+1);
+            if(gameAgent.isSearchTimeElapsed()) break;
             if (score > alpha) {
                 alpha = score;
                 bestmove = legalmoves.get(i);
@@ -229,6 +237,7 @@ public class AlphaBeta implements ISearch {
                 moveManager.storeKillerMove(bestmove, CurrentPly);
                 return bestmove;
             }
+            
         }
 
         // saveCurrentBenchmark();
@@ -237,26 +246,29 @@ public class AlphaBeta implements ISearch {
     }
 
     private Move doIterativeDeepening(
-            final Context context) {
-        Move bestmove = null;
+            final Context context,
+            final int maxDepth) {
+        Move bestMove = moveManager.getCurrentMoves(context).get(0);
+        Move nextBestMove = bestMove;
         int initialdepth = 0;
-        int finaldepth = 3;// TODO: Increase this
         maximizingPlayer = context.state().playerToAgent(context.state().mover());
         int currentPly = moveManager.getCurrentPly(context);
         
-        while (initialdepth < finaldepth) {
-            bestmove = alphaBetaRootSearch(context, initialdepth,currentPly);
+        while (initialdepth < maxDepth) {
+            nextBestMove = alphaBetaRootSearch(context, initialdepth,currentPly);
+            if(gameAgent.isSearchTimeElapsed()) break;//If search is incomplete, we can use the previous results.
+            bestMove = nextBestMove;
             initialdepth++;
         }
         // saveCurrentBenchmark();
-        return bestmove;
+        return bestMove;
     }
 
     public Move searchBestMove(final Context context, final double maxSeconds,
             final int maxIterations, final int maxDepth)
 
     {
-        return doIterativeDeepening(context);
+        return doIterativeDeepening(context,maxDepth);
 
     }
 
