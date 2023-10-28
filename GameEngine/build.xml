@@ -38,13 +38,13 @@
         </javac>
     </target>
 		
-	<target name="run">
+	<!--target name="run">
 		<ant antfile="build.xml" dir="${BokuGameEngine.location}" inheritAll="false" target="build-project"/>
 		<java classname="com.ludi.ai.boku.BokuGameEngine" failonerror="true" fork="yes">
 	    	<jvmarg line="-da -dsa -XX:+UseStringDeduplication"/>
 	    	<classpath refid="BokuGameEngine.classpath"/>
 	    </java>
-	</target>
+	</target-->
 	
 	
 	<target name="export_jar" depends="clean,build">

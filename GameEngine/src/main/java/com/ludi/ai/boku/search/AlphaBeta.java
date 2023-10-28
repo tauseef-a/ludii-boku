@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List; */
 
-import com.ludi.ai.boku.IHeuristicsManager;
+import com.ludi.ai.boku.heuristics.IHeuristicsManager;
 import com.ludi.ai.boku.IMoveManager;
 import com.ludi.ai.boku.ITranspositionTable;
 import com.ludi.ai.boku.ITranspositionTable.TranspositionTableEntry;

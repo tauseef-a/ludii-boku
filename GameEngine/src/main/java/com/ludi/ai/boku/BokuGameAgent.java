@@ -6,9 +6,8 @@ import other.AI;
 import other.context.Context;
 import other.move.Move;
 
-import com.ludi.ai.boku.search.ISearch;
-import com.ludi.ai.boku.search.AlphaBeta;
-import com.ludi.ai.boku.search.NegaMax;
+import com.ludi.ai.boku.search.*;
+import com.ludi.ai.boku.heuristics.*;
 
 
 public class BokuGameAgent extends AI {
@@ -41,11 +40,10 @@ public class BokuGameAgent extends AI {
     @Override
     public void initAI(final Game game, final int playerID) {
         this.player = playerID;
-        //this.searchTechnique = new AlphaBeta(new LineCompletionHeuristicManager());
-        /* this.searchTechnique = new AlphaBeta(new MoveManager(this), new LineCompletionHeuristicManager(), 
-                new ZobristTranspositionTable()); */
-        this.searchTechnique = new NegaMax(new MoveManager(this), new LineCompletionHeuristicManagerNegaMax(),
+        this.searchTechnique = new AlphaBeta(new MoveManager(this), new LineCompletionHeuristicManager(), 
                 new ZobristTranspositionTable());
+        /* this.searchTechnique = new NegaMax(new MoveManager(this), new LineCompletionHeuristicManagerNegaMax(),
+                new ZobristTranspositionTable()); */
         this.searchTechnique.initialize(playerID);
     }
 

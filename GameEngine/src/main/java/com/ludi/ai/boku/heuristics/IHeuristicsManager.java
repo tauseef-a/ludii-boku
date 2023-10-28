@@ -1,4 +1,4 @@
-package com.ludi.ai.boku;
+package com.ludi.ai.boku.heuristics;
 
 import other.context.Context;
 
