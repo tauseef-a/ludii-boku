@@ -214,9 +214,9 @@ public class NegaMax implements ISearch {
             if (score > alpha) {
                 alpha = score;
                 bestmove = legalmoves.get(i);
-                moveManager.storeKillerMove(bestmove, currentPly);
             }
             if (alpha >= beta) {
+                moveManager.storeKillerMove(bestmove, currentPly);
                 break;
             }
         }

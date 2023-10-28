@@ -148,6 +148,7 @@ public class NegaMaxPV implements ISearch {
         if (!isTTMoveGood) {
             bestScore = ALPHA;
             boolean moveFound = false;
+            boolean pvSearchNeeded = true;
             boolean tMoveInvalid = tEntry != null ? (tEntry.move == null) : true;
             for (int i = 0; i < legalmoves.size(); ++i) {
                 final Move m = legalmoves.get(i);
@@ -158,18 +159,50 @@ public class NegaMaxPV implements ISearch {
                 final Context copycontext = moveManager.setMoveAsCurrent(context, m);
                 if (copycontext == null)
                     continue;
-                float value = -negamaxSearchPVABOrder( copycontext, depth - 1, -beta, -alpha,currentPly+1,currentPlayer);
-                if(gameAgent.isSearchTimeElapsed()) break;
-                if (value > bestScore) {
-                    bestScore = value;
-                    bestMove = m;
+                if(pvSearchNeeded)
+                {
+                    pvSearchNeeded = false;
+                    float value = -negamaxSearchPVABOrder( copycontext, depth - 1, -beta, -alpha,currentPly+1,currentPlayer);
+                    if(gameAgent.isSearchTimeElapsed()) break;
+                    if (value > bestScore) {
+                        bestScore = value;
+                        bestMove = m;
+                    }
+                    if (bestScore > alpha) {
+                        alpha = bestScore;
+                    }
+                    if (bestScore >= beta) {
+                        moveManager.storeKillerMove(bestMove, currentPly);
+                        break;// return score;
+                    }
                 }
-                if (bestScore > alpha) {
-                    alpha = bestScore;
-                }
-                if (bestScore >= beta) {
-                    moveManager.storeKillerMove(bestMove, currentPly);
-                    break;// return score; // Fail-Soft Value
+                else // Refutation Checks
+                {
+                    float value = -negamaxSearchPVABOrder(copycontext, depth - 1, -alpha - 1, -alpha, currentPly + 1,
+                            currentPlayer);
+                    if (gameAgent.isSearchTimeElapsed())
+                        break;
+                    if(value > bestScore)
+                    {
+                        if((value > alpha) && (value < beta))
+                        {
+                            value = -negamaxSearchPVABOrder(copycontext, depth - 1, -beta, -value, currentPly + 1,
+                            currentPlayer);
+
+                        }
+
+                    }
+                    if (value > bestScore) {
+                        bestScore = value;
+                        bestMove = m;
+                    }
+                    if (bestScore > alpha) {
+                        alpha = bestScore;
+                    }
+                    if (bestScore >= beta) {
+                        moveManager.storeKillerMove(bestMove, currentPly);
+                        break;// return score; // Fail-Soft Value
+                    }
                 }
             }
         }
@@ -202,23 +235,57 @@ public class NegaMaxPV implements ISearch {
         Move bestmove = legalmoves.get(0);
         //maximisingPlayer = context.state().playerToAgent(context.state().mover());
         float alpha = ALPHA;
+        float pvAlpha = ALPHA;
         float beta = BETA;
         //long searchTime = System.currentTimeMillis();
-        for (int i = 0; i < legalmoves.size(); ++i) {
-            final Move m = legalmoves.get(i);
-            final Context copycontext = moveManager.setMoveAsCurrent(context, m);
 
-            float score = -negamaxSearchPV( copycontext, depth, alpha, beta,currentPly+1);
+        do{
+            //<------PV Search------>
+            final Move mPV = legalmoves.get(0);
+            final Context copycontextPV = moveManager.setMoveAsCurrent(context, mPV);
+            pvAlpha = -negamaxSearchPV(copycontextPV, depth, alpha, beta, currentPly + 1);
             if(gameAgent.isSearchTimeElapsed()) break;
-            if (score > alpha) {
-                alpha = score;
-                bestmove = legalmoves.get(i);
-                moveManager.storeKillerMove(bestmove, currentPly);
+            if (pvAlpha > alpha) {
+                alpha = pvAlpha;
+                bestmove = mPV;
             }
             if (alpha >= beta) {
+                moveManager.storeKillerMove(bestmove, currentPly);
                 break;
             }
-        }
+
+            //<------Refutation Search------>
+            for (int i = 1; i < legalmoves.size(); ++i) {
+                final Move m = legalmoves.get(i);
+                final Context copycontext = moveManager.setMoveAsCurrent(context, m);
+
+                float score = -negamaxSearchPV(copycontext, depth, -alpha - 1, -alpha, currentPly + 1);
+                if (gameAgent.isSearchTimeElapsed())
+                    break;
+                if(score > pvAlpha) //Re-search is needed now
+                {
+                    if((alpha < score) && (score < beta) && (depth!=0))
+                    {
+                        score = -negamaxSearchPV(copycontext, depth, -beta, -score, currentPly + 1);
+                    }
+                    pvAlpha = score; //This is the new PV Alpha now
+                }
+                //Refutation was success. Continue for other moves
+                if (gameAgent.isSearchTimeElapsed())
+                    break;
+                if (score > alpha) {
+                    alpha = score;
+                    bestmove = m;
+                }
+                if (alpha >= beta) {
+                    moveManager.storeKillerMove(bestmove, currentPly);
+                    break;
+                }
+            }
+
+        } while(false);
+
+        
         /* searchTime = System.currentTimeMillis() - searchTime;
         benchmarkdata.set(SEARCH, benchmarkdata.get(SEARCH) + searchTime);
         publishBenchmark();

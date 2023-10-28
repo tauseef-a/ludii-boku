@@ -42,12 +42,15 @@ public class BokuGameAgent extends AI implements IGameAgent {
     @Override
     public void initAI(final Game game, final int playerID) {
         this.player = playerID;
-        /* this.searchTechnique = new AlphaBeta(this,new MoveManager(this), new LineCompletionHeuristicManager(),
+        /* this.searchTechnique = new AlphaBeta(this, new MoveManager(this), new LineCompletionHeuristicManager(),
                 new ZobristTranspositionTable()); */
-        
-        this.searchTechnique = new NegaMax(this,new MoveManager(this), new LineCompletionHeuristicManagerNegaMax(),
+
+        /* this.searchTechnique = new NegaMax(this, new MoveManager(this), new LineCompletionHeuristicManagerNegaMax(),
+                new ZobristTranspositionTable()); */
+
+        this.searchTechnique = new NegaMaxPV(this, new MoveManager(this), new LineCompletionHeuristicManagerNegaMax(),
                 new ZobristTranspositionTable());
-        
+
         this.searchTechnique.initialize(playerID);
     }
 
