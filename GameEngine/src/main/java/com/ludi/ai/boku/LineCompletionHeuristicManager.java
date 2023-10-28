@@ -20,7 +20,7 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
 
     // protected Heuristics heuristicEvaluator = null;
     private static final int TARGETLENGTH = 5;
-    private static final int CAPTURELENGTH = 5;
+    private static final int CAPTURELENGTH = 2;
     private static final float MAXVALUE = 10000.00f;
     private static final int MAXOWNEDSITES = 60;
     private static final byte[] boardLineLengths = { 5, 6, 7, 8, 9, 10, 10, 9, 8, 7, 6 };
@@ -61,6 +61,16 @@ public class LineCompletionHeuristicManager implements IHeuristicsManager {
         }
     }
 
+    /**
+     * The functionality of this API is copied from https://github.com/Ludeme/Ludii
+     * Core/src/metadata/ai/heuristics/terms/LineCompletionHeuristic.java file evaluate function.
+     * All credits to its corresponding authors
+     * Changes include mainly enhancements to precalculate the radial directions to speed up the execution time
+     * And stopping further calculations once Target Length is Reached.
+     * @param context
+     * @param playerID
+     * @return
+     */
     public float evaluateBoard(final Context context, final int playerID) {
         final boolean[] ignore = new boolean[80];
 
