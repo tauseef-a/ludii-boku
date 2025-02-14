@@ -1,0 +1,47 @@
+@startuml
+autoactivate on
+participant "Ludi" as LU
+box "BokuAgent" #LightBlue
+participant "BokuGameAgent" as BGA
+participant "Negamax/AlphaBeta" as NA
+participant "HeuristicsManager" as HM
+participant "MoveManager" as MM
+participant "ZobristTranspositionTable" as ZTT
+endbox
+LU -> BGA: initAI
+BGA -> HM: Initialize Heuristic Manager
+return
+BGA -> ZTT: Initialize Zobrist based TT
+return
+BGA -> NA: Initialize Search Technique
+return
+return
+
+LU -> BGA : selectAction
+BGA -> NA :searchBestMove
+
+NA -> NA : negamaxSearch
+  NA -> MM :getCurrentMoves
+  return
+loop for all Moves
+  NA -> NA: negamax search
+  alt depth==0
+    NA -> HM : evaluateMove
+    return
+  end
+  alt alpha >= beta
+    NA -> MM : storeKillerMoves
+    return
+  end
+  return
+
+return BestMove
+NA-> ZTT : Update Transposition Table
+return
+
+return BestMove
+return BestMove
+
+
+
+@enduml
